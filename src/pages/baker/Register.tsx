@@ -15,9 +15,17 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
+import { AuthError } from "@supabase/supabase-js";
 
 const formSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z
+    .string()
+    .email("Invalid email address")
+    .refine((email) => {
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }, "Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   full_name: z.string().min(2, "Full name must be at least 2 characters"),
   phone: z.string().min(10, "Phone number must be at least 10 characters"),
@@ -37,12 +45,23 @@ const BakerRegister = () => {
     },
   });
 
+  const getErrorMessage = (error: AuthError) => {
+    switch (error.message) {
+      case "Email address is invalid":
+        return "Please enter a valid email address";
+      case "User already registered":
+        return "This email is already registered. Please try logging in instead.";
+      default:
+        return error.message || "An error occurred during registration";
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
       
-      const { error: signUpError } = await supabase.auth.signUp({
-        email: values.email,
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: values.email.trim().toLowerCase(),
         password: values.password,
         options: {
           data: {
@@ -51,31 +70,47 @@ const BakerRegister = () => {
         },
       });
 
-      if (signUpError) throw signUpError;
+      if (signUpError) {
+        toast({
+          variant: "destructive",
+          title: "Registration failed",
+          description: getErrorMessage(signUpError),
+        });
+        return;
+      }
 
-      // Update the profile with baker role and phone
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          role: 'baker',
-          phone: values.phone,
-        })
-        .eq('email', values.email);
+      if (signUpData?.user) {
+        // Update the profile with baker role and phone
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ 
+            role: 'baker',
+            phone: values.phone,
+          })
+          .eq('id', signUpData.user.id);
 
-      if (updateError) throw updateError;
+        if (updateError) {
+          toast({
+            variant: "destructive",
+            title: "Profile update failed",
+            description: "Failed to set baker role. Please contact support.",
+          });
+          return;
+        }
 
-      toast({
-        title: "Registration successful!",
-        description: "Please wait for admin approval to start using your account.",
-      });
+        toast({
+          title: "Registration successful!",
+          description: "Please check your email to verify your account.",
+        });
 
-      navigate("/");
+        navigate("/");
+      }
     } catch (error) {
       console.error("Registration error:", error);
       toast({
         variant: "destructive",
         title: "Registration failed",
-        description: error.message || "Something went wrong. Please try again.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
       });
     } finally {
       setIsLoading(false);
@@ -113,7 +148,12 @@ const BakerRegister = () => {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="john@example.com" {...field} />
+                    <Input 
+                      type="email" 
+                      placeholder="john@example.com" 
+                      {...field} 
+                      onChange={(e) => field.onChange(e.target.value.trim().toLowerCase())}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
