@@ -7,6 +7,9 @@ import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
 import Index from "./pages/Index";
 import BakerRegister from "./pages/baker/Register";
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+import AdminDashboard from "./pages/admin/Dashboard";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +25,9 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/baker/register" element={<BakerRegister />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/admin" element={<AdminDashboard />} />
             </Routes>
           </main>
           <Footer />
