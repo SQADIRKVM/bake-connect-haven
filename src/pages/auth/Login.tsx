@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
@@ -10,35 +10,45 @@ const Login = () => {
   const navigate = useNavigate();
   const [error, setError] = useState("");
 
-  // Handle auth state changes and errors
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if (event === "SIGNED_IN") {
-      try {
-        // Get user profile to check role
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", session?.user?.id)
-          .single();
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN") {
+        try {
+          // Get user profile to check role
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", session?.user?.id)
+            .single();
 
-        if (profileError) throw profileError;
+          if (profileError) throw profileError;
 
-        // Redirect based on role
-        if (profile?.role === "admin") {
-          navigate("/admin");
-        } else if (profile?.role === "baker") {
-          navigate("/baker/dashboard");
-        } else {
-          navigate("/");
+          // Redirect based on role
+          if (profile?.role === "admin") {
+            navigate("/admin");
+          } else if (profile?.role === "baker") {
+            navigate("/baker/dashboard");
+          } else {
+            navigate("/");
+          }
+        } catch (err) {
+          console.error("Error fetching user profile:", err);
+          setError("Error accessing user profile");
         }
-      } catch (err) {
-        console.error("Error fetching user profile:", err);
-        setError("Error accessing user profile");
+      } else if (event === "SIGNED_OUT") {
+        setError(""); // Clear any errors on sign out
+      } else if (event === "USER_UPDATED" && session?.user) {
+        const { error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) {
+          handleAuthError(sessionError);
+        }
       }
-    } else if (event === "SIGNED_OUT") {
-      setError(""); // Clear any errors on sign out
-    }
-  });
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [navigate]);
 
   // Handle specific auth errors
   const handleAuthError = (error: AuthError) => {
@@ -73,7 +83,6 @@ const Login = () => {
           appearance={{ theme: ThemeSupa }}
           providers={[]}
           redirectTo={window.location.origin}
-          onError={(error) => handleAuthError(error)}
         />
       </div>
     </div>
