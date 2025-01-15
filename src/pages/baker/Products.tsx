@@ -57,7 +57,7 @@ const BakerProducts = () => {
     },
   });
 
-  const { data: products, isLoading, error } = useQuery({
+  const { data: products, isLoading, error, refetch } = useQuery({
     queryKey: ['baker-products'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
