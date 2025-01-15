@@ -14,9 +14,9 @@ import { toast } from "@/components/ui/use-toast";
 interface Baker {
   id: string;
   email: string;
-  full_name: string;
-  phone: string;
-  is_approved: boolean;
+  full_name: string | null;
+  phone: string | null;
+  is_approved: boolean | null;
 }
 
 const AdminDashboard = () => {
@@ -34,7 +34,12 @@ const AdminDashboard = () => {
         .select("*")
         .eq("role", "baker");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching bakers:", error);
+        throw error;
+      }
+      
+      console.log("Fetched bakers:", data); // Debug log
       setBakers(data || []);
     } catch (error) {
       console.error("Error fetching bakers:", error);
@@ -73,46 +78,54 @@ const AdminDashboard = () => {
     }
   };
 
+  if (loading) {
+    return <div className="container mx-auto py-10">Loading...</div>;
+  }
+
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {bakers.map((baker) => (
-              <TableRow key={baker.id}>
-                <TableCell>{baker.full_name}</TableCell>
-                <TableCell>{baker.email}</TableCell>
-                <TableCell>{baker.phone}</TableCell>
-                <TableCell>
-                  {baker.is_approved ? (
-                    <span className="text-green-600">Approved</span>
-                  ) : (
-                    <span className="text-red-600">Pending</span>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant={baker.is_approved ? "destructive" : "default"}
-                    onClick={() => toggleApproval(baker)}
-                  >
-                    {baker.is_approved ? "Revoke" : "Approve"}
-                  </Button>
-                </TableCell>
+      {bakers.length === 0 ? (
+        <p>No bakers found</p>
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+            </TableHeader>
+            <TableBody>
+              {bakers.map((baker) => (
+                <TableRow key={baker.id}>
+                  <TableCell>{baker.full_name || "N/A"}</TableCell>
+                  <TableCell>{baker.email}</TableCell>
+                  <TableCell>{baker.phone || "N/A"}</TableCell>
+                  <TableCell>
+                    {baker.is_approved ? (
+                      <span className="text-green-600">Approved</span>
+                    ) : (
+                      <span className="text-red-600">Pending</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      variant={baker.is_approved ? "destructive" : "default"}
+                      onClick={() => toggleApproval(baker)}
+                    >
+                      {baker.is_approved ? "Revoke" : "Approve"}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 };
