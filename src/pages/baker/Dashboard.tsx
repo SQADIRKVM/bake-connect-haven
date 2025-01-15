@@ -21,11 +21,11 @@ interface Order {
   product: {
     name: string;
     price: number;
-  };
+  } | null;
   customer: {
     full_name: string | null;
     phone: string | null;
-  };
+  } | null;
 }
 
 const BakerDashboard = () => {
@@ -81,11 +81,11 @@ const BakerDashboard = () => {
           <TableBody>
             {orders?.map((order) => (
               <TableRow key={order.id}>
-                <TableCell>{order.product.name}</TableCell>
-                <TableCell>{order.customer.full_name || 'Anonymous'}</TableCell>
+                <TableCell>{order.product?.name || 'Deleted Product'}</TableCell>
+                <TableCell>{order.customer?.full_name || 'Anonymous'}</TableCell>
                 <TableCell>{order.quantity}</TableCell>
                 <TableCell>
-                  ${(order.quantity * order.product.price).toFixed(2)}
+                  ${((order.quantity * (order.product?.price || 0))).toFixed(2)}
                 </TableCell>
                 <TableCell>
                   <Badge variant={order.status === 'delivered' ? 'default' : 'secondary'}>
