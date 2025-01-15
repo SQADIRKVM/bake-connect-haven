@@ -57,7 +57,7 @@ const BakerProducts = () => {
     },
   });
 
-  const { data: products, refetch } = useQuery({
+  const { data: products, isLoading, error } = useQuery({
     queryKey: ['baker-products'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -160,15 +160,34 @@ const BakerProducts = () => {
     }
   };
 
-  // Group products by category
-  const groupedProducts = products?.reduce((acc, product) => {
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="text-center">Loading products...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="text-center text-red-500">
+          Error loading products: {error instanceof Error ? error.message : 'Unknown error'}
+        </div>
+      </div>
+    );
+  }
+
+  // Group products by category safely
+  const groupedProducts = (products || []).reduce((acc, product) => {
+    if (!product) return acc; // Skip null products
     const category = product.category;
     if (!acc[category]) {
       acc[category] = [];
     }
     acc[category].push(product);
     return acc;
-  }, {} as Record<string, Product[]>) || {};
+  }, {} as Record<string, Product[]>);
 
   return (
     <div className="container mx-auto py-8">
@@ -262,34 +281,40 @@ const BakerProducts = () => {
                 <h3 className="text-lg font-medium capitalize">{category}</h3>
                 <div className="grid gap-4">
                   {categoryProducts.map((product) => (
-                    <Card key={product.id}>
-                      <CardHeader>
-                        <CardTitle>{product.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground">{product.description}</p>
-                        <p className="mt-2 font-semibold">${product.price}</p>
-                        {product.baker && (
-                          <p className="text-sm">Baker: {product.baker.full_name}</p>
-                        )}
-                      </CardContent>
-                      <CardFooter>
-                        <Button
-                          variant="outline"
-                          onClick={() => {
-                            setEditingProduct(product);
-                            form.reset({
-                              name: product.name,
-                              price: product.price,
-                              description: product.description || "",
-                              category: product.category,
-                            });
-                          }}
-                        >
-                          Edit
-                        </Button>
-                      </CardFooter>
-                    </Card>
+                    product && (
+                      <Card key={product.id}>
+                        <CardHeader>
+                          <CardTitle>{product.name}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-sm text-muted-foreground">
+                            {product.description || 'No description available'}
+                          </p>
+                          <p className="mt-2 font-semibold">${product.price}</p>
+                          {product.baker && (
+                            <p className="text-sm">Baker: {product.baker.full_name}</p>
+                          )}
+                        </CardContent>
+                        <CardFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              if (product) {
+                                setEditingProduct(product);
+                                form.reset({
+                                  name: product.name,
+                                  price: product.price,
+                                  description: product.description || "",
+                                  category: product.category,
+                                });
+                              }
+                            }}
+                          >
+                            Edit
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    )
                   ))}
                 </div>
               </div>
