@@ -4,7 +4,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AuthError } from "@supabase/supabase-js";
+import { AuthError, AuthApiError } from "@supabase/supabase-js";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -52,15 +52,22 @@ const Login = () => {
 
   // Handle specific auth errors
   const handleAuthError = (error: AuthError) => {
-    switch (error.message) {
-      case "Invalid login credentials":
-        setError("Invalid email or password. Please check your credentials.");
-        break;
-      case "Email not confirmed":
-        setError("Please verify your email before logging in.");
-        break;
-      default:
-        setError(error.message);
+    if (error instanceof AuthApiError) {
+      switch (error.message) {
+        case "Invalid login credentials":
+          setError("Invalid email or password. Please check your credentials.");
+          break;
+        case "Email not confirmed":
+          setError("Please verify your email before logging in.");
+          break;
+        case "Invalid grant":
+          setError("Invalid email or password. Please check your credentials.");
+          break;
+        default:
+          setError(error.message);
+      }
+    } else {
+      setError(error.message);
     }
   };
 
