@@ -1,8 +1,7 @@
-import { Navigate } from "react-router-dom";
+import CategoryView from "./CategoryView";
 
 const Products = () => {
-  // Redirect to category view as main landing page
-  return <Navigate to="/products/categories" replace />;
+  return <CategoryView />;
 };
 
 export default Products;
