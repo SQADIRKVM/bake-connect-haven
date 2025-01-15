@@ -82,12 +82,17 @@ const BakerProducts = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      const productData = {
+        name: values.name,
+        price: values.price,
+        description: values.description || null,
+        category: values.category,
+        baker_id: user.id,
+      };
+
       const { error } = await supabase
         .from('products')
-        .insert({
-          ...values,
-          baker_id: user.id,
-        });
+        .insert(productData);
 
       if (error) {
         console.error('Error creating product:', error);
@@ -115,9 +120,16 @@ const BakerProducts = () => {
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       if (!editingProduct) return;
 
+      const productData = {
+        name: values.name,
+        price: values.price,
+        description: values.description || null,
+        category: values.category,
+      };
+
       const { error } = await supabase
         .from('products')
-        .update(values)
+        .update(productData)
         .eq('id', editingProduct.id);
 
       if (error) throw error;
