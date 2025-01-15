@@ -82,13 +82,24 @@ const BakerProducts = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Make sure to include baker_id in the product data
+      // First check if the user is a baker
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+      if (!profile || profile.role !== 'baker') {
+        throw new Error('Only bakers can create products');
+      }
+
       const productData = {
         name: values.name,
         price: values.price,
         description: values.description || null,
         category: values.category,
-        baker_id: user.id, // This is crucial for RLS policy
+        baker_id: user.id,
       };
 
       const { error } = await supabase
