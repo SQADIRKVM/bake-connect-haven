@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 interface Baker {
   id: string;
@@ -21,6 +22,17 @@ interface Product {
 
 const CategoryView = () => {
   const navigate = useNavigate();
+
+  // Check if user is authenticated
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate('/auth/login', { replace: true });
+      }
+    };
+    checkAuth();
+  }, [navigate]);
 
   const { data: products, isLoading } = useQuery({
     queryKey: ['products-by-category'],
@@ -49,12 +61,12 @@ const CategoryView = () => {
   }, {} as Record<string, Product[]>) || {};
 
   if (isLoading) {
-    return <div className="container mx-auto py-8">Loading...</div>;
+    return <div className="container mx-auto py-8">Loading categories...</div>;
   }
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8">Browse Products by Category</h1>
+      <h1 className="text-3xl font-bold mb-8">Browse Categories</h1>
       
       <div className="space-y-12">
         {Object.entries(groupedProducts).map(([category, categoryProducts]) => (
@@ -74,14 +86,15 @@ const CategoryView = () => {
                     <CardTitle className="text-xl">{product.name}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">{product.description}</p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {product.description || 'No description available'}
+                    </p>
                     <div className="flex justify-between items-center">
                       <p className="font-semibold text-lg">${product.price}</p>
                       <Button
-                        variant="outline"
-                        onClick={() => navigate(`/baker/${product.baker.id}`)}
+                        onClick={() => navigate(`/products/${product.id}`)}
                       >
-                        View Baker
+                        Order Now
                       </Button>
                     </div>
                     <p className="text-sm mt-2">By: {product.baker.full_name}</p>
