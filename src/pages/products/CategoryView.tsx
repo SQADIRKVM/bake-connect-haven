@@ -34,7 +34,7 @@ const CategoryView = () => {
     checkAuth();
   }, [navigate]);
 
-  const { data: products, isLoading } = useQuery({
+  const { data: products, isLoading, error } = useQuery({
     queryKey: ['products-by-category'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -52,6 +52,18 @@ const CategoryView = () => {
       return data as Product[];
     },
   });
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center">
+          <p className="text-lg text-red-500">
+            {error instanceof Error ? error.message : "Failed to load products"}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Group products by category
   const groupedProducts = products?.reduce((acc, product) => {
