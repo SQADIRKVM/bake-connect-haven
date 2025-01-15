@@ -29,9 +29,11 @@ const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [rating, setRating] = useState(5);
 
-  const { data: product, isLoading } = useQuery({
+  const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
     queryFn: async () => {
+      if (!id) throw new Error('Product ID is required');
+      
       const { data, error } = await supabase
         .from('products')
         .select(`
@@ -39,11 +41,20 @@ const ProductDetails = () => {
           baker:profiles(full_name, phone)
         `)
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching product:', error);
+        throw error;
+      }
+      
+      if (!data) {
+        throw new Error('Product not found');
+      }
+
       return data as Product;
     },
+    enabled: !!id,
   });
 
   const createOrder = useMutation({
@@ -110,11 +121,35 @@ const ProductDetails = () => {
   });
 
   if (isLoading) {
-    return <div className="container mx-auto py-8">Loading...</div>;
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center">
+          <p className="text-lg">Loading product details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center">
+          <p className="text-lg text-red-500">
+            {error instanceof Error ? error.message : "Failed to load product"}
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (!product) {
-    return <div className="container mx-auto py-8">Product not found</div>;
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center">
+          <p className="text-lg">Product not found</p>
+        </div>
+      </div>
+    );
   }
 
   const handleWhatsApp = () => {
