@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
-import { AuthError } from "@supabase/supabase-js";
+import { AuthError, AuthApiError } from "@supabase/supabase-js";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const formSchema = z.object({
   email: z
@@ -34,6 +35,7 @@ const formSchema = z.object({
 const BakerRegister = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,19 +48,23 @@ const BakerRegister = () => {
   });
 
   const getErrorMessage = (error: AuthError) => {
-    switch (error.message) {
-      case "Email address is invalid":
-        return "Please enter a valid email address";
-      case "User already registered":
-        return "This email is already registered. Please try logging in instead.";
-      default:
-        return error.message || "An error occurred during registration";
+    if (error instanceof AuthApiError) {
+      switch (error.message) {
+        case "User already registered":
+          return "This email is already registered. Please try logging in instead.";
+        case "Email address is invalid":
+          return "Please enter a valid email address";
+        default:
+          return error.message;
+      }
     }
+    return "An unexpected error occurred. Please try again.";
   };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
+      setError(null);
       
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email.trim().toLowerCase(),
@@ -71,11 +77,7 @@ const BakerRegister = () => {
       });
 
       if (signUpError) {
-        toast({
-          variant: "destructive",
-          title: "Registration failed",
-          description: getErrorMessage(signUpError),
-        });
+        setError(getErrorMessage(signUpError));
         return;
       }
 
@@ -90,11 +92,7 @@ const BakerRegister = () => {
           .eq('id', signUpData.user.id);
 
         if (updateError) {
-          toast({
-            variant: "destructive",
-            title: "Profile update failed",
-            description: "Failed to set baker role. Please contact support.",
-          });
+          setError("Failed to set baker role. Please contact support.");
           return;
         }
 
@@ -107,11 +105,7 @@ const BakerRegister = () => {
       }
     } catch (error) {
       console.error("Registration error:", error);
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: error instanceof Error ? error.message : "An unexpected error occurred",
-      });
+      setError(error instanceof Error ? error.message : "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -126,6 +120,13 @@ const BakerRegister = () => {
             Register as a baker to start selling your products
           </p>
         </div>
+
+        {error && (
+          <Alert variant="destructive">
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
