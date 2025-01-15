@@ -45,13 +45,17 @@ const CategoryView = () => {
         `)
         .order('category');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
       return data as Product[];
     },
   });
 
   // Group products by category
   const groupedProducts = products?.reduce((acc, product) => {
+    if (!product) return acc;
     const category = product.category;
     if (!acc[category]) {
       acc[category] = [];
@@ -61,7 +65,13 @@ const CategoryView = () => {
   }, {} as Record<string, Product[]>) || {};
 
   if (isLoading) {
-    return <div className="container mx-auto py-8">Loading categories...</div>;
+    return (
+      <div className="container mx-auto py-8">
+        <div className="flex items-center justify-center">
+          <p className="text-lg">Loading categories...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -97,7 +107,9 @@ const CategoryView = () => {
                         Order Now
                       </Button>
                     </div>
-                    <p className="text-sm mt-2">By: {product.baker.full_name}</p>
+                    {product.baker && (
+                      <p className="text-sm mt-2">By: {product.baker.full_name}</p>
+                    )}
                   </CardContent>
                 </Card>
               ))}
