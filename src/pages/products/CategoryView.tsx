@@ -42,7 +42,8 @@ const CategoryView = () => {
         .select(`
           *,
           baker:profiles(id, full_name)
-        `);
+        `)
+        .order('category', { ascending: true });
 
       if (error) {
         console.error('Error fetching products:', error);
