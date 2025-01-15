@@ -31,6 +31,10 @@ interface Product {
   description: string | null;
   image_url: string | null;
   category: string;
+  baker: {
+    id: string;
+    full_name: string;
+  } | null;
 }
 
 const formSchema = z.object({
@@ -61,7 +65,10 @@ const BakerProducts = () => {
 
       const { data, error } = await supabase
         .from('products')
-        .select('*')
+        .select(`
+          *,
+          baker:profiles(id, full_name)
+        `)
         .eq('baker_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -82,7 +89,10 @@ const BakerProducts = () => {
           baker_id: user.id,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating product:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({
@@ -137,6 +147,16 @@ const BakerProducts = () => {
       createProduct.mutate(values);
     }
   };
+
+  // Group products by category
+  const groupedProducts = products?.reduce((acc, product) => {
+    const category = product.category;
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(product);
+    return acc;
+  }, {} as Record<string, Product[]>) || {};
 
   return (
     <div className="container mx-auto py-8">
@@ -223,35 +243,44 @@ const BakerProducts = () => {
         </div>
 
         <div>
-          <h2 className="text-xl font-semibold mb-4">Your Products</h2>
-          <div className="space-y-4">
-            {products?.map((product) => (
-              <Card key={product.id}>
-                <CardHeader>
-                  <CardTitle>{product.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">{product.description}</p>
-                  <p className="mt-2 font-semibold">${product.price}</p>
-                  <p className="text-sm">Category: {product.category}</p>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setEditingProduct(product);
-                      form.reset({
-                        name: product.name,
-                        price: product.price,
-                        description: product.description || "",
-                        category: product.category,
-                      });
-                    }}
-                  >
-                    Edit
-                  </Button>
-                </CardFooter>
-              </Card>
+          <h2 className="text-xl font-semibold mb-4">Your Products by Category</h2>
+          <div className="space-y-6">
+            {Object.entries(groupedProducts).map(([category, categoryProducts]) => (
+              <div key={category} className="space-y-4">
+                <h3 className="text-lg font-medium capitalize">{category}</h3>
+                <div className="grid gap-4">
+                  {categoryProducts.map((product) => (
+                    <Card key={product.id}>
+                      <CardHeader>
+                        <CardTitle>{product.name}</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">{product.description}</p>
+                        <p className="mt-2 font-semibold">${product.price}</p>
+                        {product.baker && (
+                          <p className="text-sm">Baker: {product.baker.full_name}</p>
+                        )}
+                      </CardContent>
+                      <CardFooter>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setEditingProduct(product);
+                            form.reset({
+                              name: product.name,
+                              price: product.price,
+                              description: product.description || "",
+                              category: product.category,
+                            });
+                          }}
+                        >
+                          Edit
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         </div>
