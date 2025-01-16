@@ -65,7 +65,8 @@ const BakerRegister = () => {
     try {
       setIsLoading(true);
       setError(null);
-      
+
+      // First, sign up the user
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email.trim().toLowerCase(),
         password: values.password,
@@ -81,31 +82,39 @@ const BakerRegister = () => {
         return;
       }
 
-      if (signUpData?.user) {
-        // Update the profile with baker role and phone
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ 
-            role: 'baker',
-            phone: values.phone,
-          })
-          .eq('id', signUpData.user.id);
-
-        if (updateError) {
-          setError("Failed to set baker role. Please contact support.");
-          return;
-        }
-
-        toast({
-          title: "Registration successful!",
-          description: "Please check your email to verify your account.",
-        });
-
-        navigate("/");
+      if (!signUpData?.user?.id) {
+        setError("Failed to create user account. Please try again.");
+        return;
       }
+
+      // Then update the profile with baker role and phone
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          role: 'baker',
+          phone: values.phone,
+          full_name: values.full_name,
+        })
+        .eq('id', signUpData.user.id);
+
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        // Try to delete the user if profile update fails
+        await supabase.auth.admin.deleteUser(signUpData.user.id);
+        setError("Registration failed. Please try again or contact support if the problem persists.");
+        return;
+      }
+
+      toast({
+        title: "Registration successful!",
+        description: "Please check your email to verify your account.",
+      });
+
+      // Redirect to home page after successful registration
+      navigate("/");
     } catch (error) {
       console.error("Registration error:", error);
-      setError(error instanceof Error ? error.message : "An unexpected error occurred");
+      setError("An unexpected error occurred. Please try again later.");
     } finally {
       setIsLoading(false);
     }
