@@ -11,6 +11,13 @@ const Login = () => {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Clear any existing sessions on component mount
+    const clearInvalidSession = async () => {
+      const { error } = await supabase.auth.signOut();
+      if (error) console.error("Error clearing session:", error);
+    };
+    clearInvalidSession();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN") {
         try {
@@ -37,6 +44,9 @@ const Login = () => {
         }
       } else if (event === "SIGNED_OUT") {
         setError(""); // Clear any errors on sign out
+      } else if (event === "TOKEN_REFRESHED") {
+        // Handle successful token refresh
+        console.log("Token refreshed successfully");
       } else if (event === "USER_UPDATED" && session?.user) {
         const { error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
@@ -62,6 +72,11 @@ const Login = () => {
           break;
         case "Invalid grant":
           setError("Invalid email or password. Please check your credentials.");
+          break;
+        case "Invalid Refresh Token: Refresh Token Not Found":
+          setError("Your session has expired. Please sign in again.");
+          // Attempt to clear the invalid session
+          supabase.auth.signOut();
           break;
         default:
           setError(error.message);
