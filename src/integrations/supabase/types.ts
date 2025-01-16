@@ -152,6 +152,7 @@ export type Database = {
           full_name: string | null
           id: string
           is_approved: boolean | null
+          is_blocked: boolean | null
           phone: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string
@@ -162,6 +163,7 @@ export type Database = {
           full_name?: string | null
           id: string
           is_approved?: boolean | null
+          is_blocked?: boolean | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
@@ -172,6 +174,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           is_approved?: boolean | null
+          is_blocked?: boolean | null
           phone?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
