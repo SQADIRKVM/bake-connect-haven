@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 interface Baker {
   id: string;
@@ -33,17 +33,6 @@ const CategoryView = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCategory = searchParams.get('category');
-
-  // Check if user is authenticated
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate('/auth/login', { replace: true });
-      }
-    };
-    checkAuth();
-  }, [navigate]);
 
   const { data: products, isLoading, error } = useQuery({
     queryKey: ['products-by-category', selectedCategory],
@@ -81,17 +70,6 @@ const CategoryView = () => {
       </div>
     );
   }
-
-  // Group products by category
-  const groupedProducts = products?.reduce((acc, product) => {
-    if (!product) return acc;
-    const category = product.category;
-    if (!acc[category]) {
-      acc[category] = [];
-    }
-    acc[category].push(product);
-    return acc;
-  }, {} as Record<string, Product[]>) || {};
 
   if (isLoading) {
     return (
@@ -169,7 +147,7 @@ const CategoryView = () => {
                 <Button
                   onClick={() => navigate(`/products/${product.id}`)}
                 >
-                  Order Now
+                  View Details
                 </Button>
               </div>
               {product.baker && (

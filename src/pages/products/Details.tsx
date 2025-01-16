@@ -1,12 +1,11 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
 
 interface Product {
   id: string;
@@ -28,6 +27,21 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [rating, setRating] = useState(5);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', id],
@@ -53,6 +67,11 @@ const ProductDetails = () => {
 
   const createOrder = useMutation({
     mutationFn: async () => {
+      if (!isAuthenticated) {
+        navigate('/login');
+        throw new Error('Please login to place an order');
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Please login to place an order');
 
@@ -76,6 +95,10 @@ const ProductDetails = () => {
       navigate('/orders');
     },
     onError: (error) => {
+      if (error instanceof Error && error.message === 'Please login to place an order') {
+        // Don't show error toast when redirecting to login
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Failed to place order",
@@ -86,6 +109,11 @@ const ProductDetails = () => {
 
   const submitRating = useMutation({
     mutationFn: async () => {
+      if (!isAuthenticated) {
+        navigate('/login');
+        throw new Error('Please login to rate products');
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Please login to rate products');
 
@@ -106,6 +134,10 @@ const ProductDetails = () => {
       });
     },
     onError: (error) => {
+      if (error instanceof Error && error.message === 'Please login to rate products') {
+        // Don't show error toast when redirecting to login
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Failed to submit rating",
@@ -113,6 +145,18 @@ const ProductDetails = () => {
       });
     },
   });
+
+  const handleWhatsApp = () => {
+    if (product?.baker.phone) {
+      window.open(`https://wa.me/${product.baker.phone}`, '_blank');
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Contact not available",
+        description: "The baker hasn't provided a contact number.",
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -145,18 +189,6 @@ const ProductDetails = () => {
       </div>
     );
   }
-
-  const handleWhatsApp = () => {
-    if (product.baker.phone) {
-      window.open(`https://wa.me/${product.baker.phone}`, '_blank');
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Contact not available",
-        description: "The baker hasn't provided a contact number.",
-      });
-    }
-  };
 
   return (
     <div className="container mx-auto py-8">
@@ -211,7 +243,7 @@ const ProductDetails = () => {
                   className="w-full"
                   onClick={() => createOrder.mutate()}
                 >
-                  Place Order
+                  {isAuthenticated ? 'Place Order' : 'Login to Order'}
                 </Button>
               </div>
             </CardContent>
@@ -237,7 +269,7 @@ const ProductDetails = () => {
                   className="w-full"
                   onClick={() => submitRating.mutate()}
                 >
-                  Submit Rating
+                  {isAuthenticated ? 'Submit Rating' : 'Login to Rate'}
                 </Button>
               </div>
             </CardContent>
