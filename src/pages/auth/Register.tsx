@@ -4,7 +4,7 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { toast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -41,8 +41,6 @@ const Register = () => {
         }
       } else if (event === "SIGNED_OUT") {
         setError("");
-      } else if (event === "SIGNED_UP") {
-        console.log("User signed up successfully");
       }
     });
 
