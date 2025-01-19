@@ -65,7 +65,6 @@ const BakerRegister = () => {
       setIsLoading(true);
       setError(null);
 
-      // First, sign up the user
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email.trim().toLowerCase(),
         password: values.password,
@@ -93,7 +92,6 @@ const BakerRegister = () => {
         description: "Please check your email to verify your account. An admin will review your application.",
       });
 
-      // Redirect to login page after successful registration
       navigate("/login");
     } catch (error) {
       console.error("Registration error:", error);
