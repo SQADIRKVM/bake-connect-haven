@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, ShoppingBag, ChefHat } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 interface Baker {
   id: string;
@@ -29,16 +30,35 @@ interface Analytics {
 }
 
 const AdminDashboard = () => {
-  const [bakers, setBakers] = useState<Baker[]>([]);
   const [analytics, setAnalytics] = useState<Analytics>({
     totalUsers: 0,
     totalProducts: 0,
     totalBakers: 0,
   });
-  const [loading, setLoading] = useState(true);
+
+  const { data: bakers = [], isLoading } = useQuery({
+    queryKey: ['bakers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("role", "baker");
+
+      if (error) {
+        console.error("Error fetching bakers:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load bakers",
+        });
+        throw error;
+      }
+      
+      return data || [];
+    },
+  });
 
   useEffect(() => {
-    fetchBakers();
     fetchAnalytics();
   }, []);
 
@@ -47,12 +67,14 @@ const AdminDashboard = () => {
       const [usersCount, productsCount, bakersCount] = await Promise.all([
         supabase
           .from("profiles")
-          .select("id", { count: "exact" })
+          .select("id", { count: "exact", head: true })
           .eq("role", "user"),
-        supabase.from("products").select("id", { count: "exact" }),
+        supabase
+          .from("products")
+          .select("id", { count: "exact", head: true }),
         supabase
           .from("profiles")
-          .select("id", { count: "exact" })
+          .select("id", { count: "exact", head: true })
           .eq("role", "baker"),
       ]);
 
@@ -71,28 +93,6 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchBakers = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("role", "baker");
-
-      if (error) throw error;
-      
-      setBakers(data || []);
-    } catch (error) {
-      console.error("Error fetching bakers:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load bakers",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const toggleApproval = async (baker: Baker) => {
     try {
       const { error } = await supabase
@@ -106,8 +106,6 @@ const AdminDashboard = () => {
         title: "Success",
         description: `Baker ${baker.is_approved ? "unapproved" : "approved"} successfully`,
       });
-
-      fetchBakers();
     } catch (error) {
       console.error("Error updating baker:", error);
       toast({
@@ -129,10 +127,8 @@ const AdminDashboard = () => {
 
       toast({
         title: "Success",
-        description: `User ${baker.is_blocked ? "unblocked" : "blocked"} successfully`,
+        description: `Baker ${baker.is_blocked ? "unblocked" : "blocked"} successfully`,
       });
-
-      fetchBakers();
     } catch (error) {
       console.error("Error updating block status:", error);
       toast({
@@ -143,7 +139,7 @@ const AdminDashboard = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return <div className="container mx-auto py-10">Loading...</div>;
   }
 
@@ -151,7 +147,6 @@ const AdminDashboard = () => {
     <div className="container mx-auto py-10">
       <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
       
-      {/* Analytics Cards */}
       <div className="grid gap-4 md:grid-cols-3 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -182,7 +177,6 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      {/* Bakers Table */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
@@ -195,7 +189,7 @@ const AdminDashboard = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {bakers.map((baker) => (
+            {bakers.map((baker: Baker) => (
               <TableRow key={baker.id}>
                 <TableCell>{baker.full_name || "N/A"}</TableCell>
                 <TableCell>{baker.email}</TableCell>
