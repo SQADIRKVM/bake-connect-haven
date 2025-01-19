@@ -41,6 +41,8 @@ const Login = () => {
         } catch (err) {
           console.error("Error fetching user profile:", err);
           setError("Error accessing user profile");
+          // If there's an error, sign out the user to clear any invalid session
+          await supabase.auth.signOut();
         }
       } else if (event === "SIGNED_OUT") {
         setError(""); // Clear any errors on sign out
