@@ -79,6 +79,15 @@ const Register = () => {
           providers={[]}
           redirectTo={window.location.origin}
           view="sign_up"
+          localization={{
+            variables: {
+              sign_up: {
+                email_label: "Email",
+                password_label: "Password",
+                button_label: "Sign up",
+              }
+            }
+          }}
         />
       </div>
     </div>
