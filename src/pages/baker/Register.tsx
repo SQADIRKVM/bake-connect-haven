@@ -23,7 +23,6 @@ const formSchema = z.object({
     .string()
     .email("Invalid email address")
     .refine((email) => {
-      // Basic email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       return emailRegex.test(email);
     }, "Please enter a valid email address"),
@@ -73,6 +72,8 @@ const BakerRegister = () => {
         options: {
           data: {
             full_name: values.full_name,
+            role: 'baker',
+            phone: values.phone,
           },
         },
       });
@@ -82,36 +83,18 @@ const BakerRegister = () => {
         return;
       }
 
-      if (!signUpData?.user?.id) {
+      if (!signUpData?.user) {
         setError("Failed to create user account. Please try again.");
-        return;
-      }
-
-      // Then update the profile with baker role and phone
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ 
-          role: 'baker',
-          phone: values.phone,
-          full_name: values.full_name,
-        })
-        .eq('id', signUpData.user.id);
-
-      if (updateError) {
-        console.error('Profile update error:', updateError);
-        // Try to delete the user if profile update fails
-        await supabase.auth.admin.deleteUser(signUpData.user.id);
-        setError("Registration failed. Please try again or contact support if the problem persists.");
         return;
       }
 
       toast({
         title: "Registration successful!",
-        description: "Please check your email to verify your account.",
+        description: "Please check your email to verify your account. An admin will review your application.",
       });
 
-      // Redirect to home page after successful registration
-      navigate("/");
+      // Redirect to login page after successful registration
+      navigate("/login");
     } catch (error) {
       console.error("Registration error:", error);
       setError("An unexpected error occurred. Please try again later.");
