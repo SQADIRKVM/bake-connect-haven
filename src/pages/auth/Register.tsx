@@ -79,7 +79,7 @@ const Register = () => {
           providers={[]}
           redirectTo={window.location.origin}
           view="sign_up"
-          options={{
+          authOptions={{
             emailRedirectTo: window.location.origin,
             data: {
               full_name: "",
