@@ -79,22 +79,10 @@ const Register = () => {
           providers={[]}
           redirectTo={window.location.origin}
           view="sign_up"
-          authOptions={{
-            emailRedirectTo: window.location.origin,
-            data: {
-              full_name: "",
-              role: "user",
-              phone: "",
-            }
-          }}
-          localization={{
-            variables: {
-              sign_up: {
-                email_label: "Email",
-                password_label: "Password",
-                button_label: "Sign up",
-              }
-            }
+          additionalData={{
+            full_name: "",
+            role: "user",
+            phone: "",
           }}
         />
       </div>
